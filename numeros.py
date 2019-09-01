@@ -1,3 +1,4 @@
+#This program was taken from sentdex youtube channel
 import tensorflow as tf
 import numpy as np
 mnist = tf.keras.datasets.mnist #28x28 images of hand-written digits 0-9
