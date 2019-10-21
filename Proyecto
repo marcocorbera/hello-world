@@ -1,0 +1,70 @@
+//Seteo pines para ultrasonido
+
+#define US_TRIGGER 6
+#define US_ECHO 5
+#define S_MAG 13
+#define S_LUZ 23
+
+ long t; //tiempo que demora en llegar el eco
+ long d; //distancia en centimetros
+ 
+void setup() {
+  // put your setup code here, to run once:
+ // Seteo de ultrasonido
+  pinMode(US_TRIGGER, OUTPUT); //pin como salida
+  pinMode(US_ECHO, INPUT); //pin como entrada
+  pinMode(S_MAG, INPUT); //pin como entrada
+  pinMode(S_LUZ, INPUT); //pin como entrada
+  digitalWrite(US_TRIGGER, LOW); //Inicializamos el pin con 0
+  delay(1000);
+  xTaskCreate{ultrasonido,"ultrasonido",10000,NULL,1,NULL};
+  xTaskCreate{magnetico,"magnetico",10000,NULL,1,NULL};
+  xTaskCreate{main,"main",10000,NULL,1,NULL};              
+}
+
+void loop() {
+  // put your main code here, to run repeatedly:
+  delay(1000);
+}
+void main (void * parameter)
+{
+  // Esta parte de codigo comentado es para probar como funcionan las tres funciones
+  /*for (int i=0; i<10;i++)
+  { Serial.print(i);
+  delay(1000);
+    }
+  */
+ 
+ 
+  
+  
+  vTaskDelete(NULL);
+}
+void ultrasonido (void * parameter)
+{
+  // Esta parte de codigo comentado es para probar como funcionan las tres funciones
+  /*for (int i=0; i<10;i++)
+  { Serial.print(2*i);
+  delay(1000);
+    }
+  */
+  digitalWrite(Trigger, HIGH);
+  delayMicroseconds(20); //Enviamos un pulso de 10us
+  digitalWrite(Trigger, LOW);
+
+  t = pulseIn(Echo, HIGH); //Obtenemios el ancho del pulso
+  d = t/59; //Escalamos el tiempo a una distancia en cm
+  
+  vTaskDelete(NULL);
+}
+void magnetico (void * parameter)
+{
+  // Esta parte de codigo comentado es para probar como funcionan las tres funciones
+ /* for (int i=0; i<10;i++)
+  { Serial.print(3*i);
+  delay(1000);
+    }
+  */
+  
+  vTaskDelete(NULL);
+}
