@@ -1,70 +1,167 @@
-//Seteo pines para ultrasonido
+#include <Wire.h>
+#include <Adafruit_NeoPixel.h>
+#include <math.h>
 
-#define US_TRIGGER 6
-#define US_ECHO 5
-#define S_MAG 13
-#define S_LUZ 23
+//CTES para ultrasonido
 
- long t; //tiempo que demora en llegar el eco
- long d; //distancia en centimetros
- 
+const int US_TRIGGER = 4;//pin 6 del micro
+const int US_ECHO = 3;//pin 5 del micro
+
+//CTES PARA LA TIRA DE LEDS Y SENSOR DE LUZ
+#define LED_PIN 7//PIN 13 del micro
+#define S_LUZ 1//PIN 23 del micro
+#define LED_COUNT 60
+
+Adafruit_NeoPixel strip(LED_COUNT, LED_PIN, NEO_RGB + NEO_KHZ800);
+
+  uint32_t rojo_fuerte = strip.Color(0, 200,0);
+  uint32_t verde_fuerte = strip.Color(0, 0, 200);
+  uint32_t blanco_fuerte = strip.Color(200, 200, 200);
+  uint32_t amarillo_fuerte = strip.Color(0, 200, 200);
+  
+  uint32_t rojo_debil = strip.Color(0, 50, 0);
+  uint32_t verde_debil = strip.Color(0, 0, 50);
+  uint32_t blanco_debil = strip.Color(50, 50, 50);
+  uint32_t amarillo_debil = strip.Color(0, 50, 50);
+
+  
+//CTES PARA LA BOMBA
+#define BOMBA 5//PIN 11 del micro
+
+//CTES PARA EL SW MAGNÉTICO
+#define S_MAG 6//PIN 12 del micro
+
+//CTES SHIFT REGISTER 74HC595
+#define SCK 2//PIN 4 del micro
+#define SER 8//PIN 14 del micro
+#define RCK 9//PIN 15 del micro
+
+byte datos;
+int inicio=0;
+
 void setup() {
   // put your setup code here, to run once:
- // Seteo de ultrasonido
+  // Seteo de ultrasonido
   pinMode(US_TRIGGER, OUTPUT); //pin como salida
   pinMode(US_ECHO, INPUT); //pin como entrada
-  pinMode(S_MAG, INPUT); //pin como entrada
-  pinMode(S_LUZ, INPUT); //pin como entrada
   digitalWrite(US_TRIGGER, LOW); //Inicializamos el pin con 0
-  delay(1000);
-  xTaskCreate{ultrasonido,"ultrasonido",10000,NULL,1,NULL};
-  xTaskCreate{magnetico,"magnetico",10000,NULL,1,NULL};
-  xTaskCreate{main,"main",10000,NULL,1,NULL};              
+   //Seteo sensor magnetico
+  pinMode(S_MAG, INPUT); //pin como entrada
+  pinMode(BOMBA,OUTPUT);
+  //Seteo Leds ShiftRegister
+  //pinMode();
+  //Seteo tira leds
+  Serial.begin(9600);
+  strip.begin();           // INITIALIZE NeoPixel strip object (REQUIRED)
+  strip.clear();
+  for(int i=0;i<LED_COUNT;i++){
+    strip.setPixelColor(i, verde_fuerte);
+  }
+  strip.show();            // Turn OFF all pixels ASAP
+  delay(50);
 }
 
 void loop() {
+  double volumen,Tiempo,volumen_ant;
+  int sensor_mag;
   // put your main code here, to run repeatedly:
-  delay(1000);
-}
-void main (void * parameter)
-{
-  // Esta parte de codigo comentado es para probar como funcionan las tres funciones
-  /*for (int i=0; i<10;i++)
-  { Serial.print(i);
-  delay(1000);
+    double volumen_inicial=MedirNivelAgua();
+    volumen_ant=volumen_inicial;
+    while(1){
+      do{
+        volumen=MedirNivelAgua();
+        Serial.println(volumen);
+        
+        NivelLuz(volumen,volumen_ant);
+        volumen_ant=volumen;
+        if (digitalRead(S_MAG)==LOW){digitalWrite(BOMBA,LOW);}//Agregado
+      }while((digitalRead(S_MAG))==LOW);
+      if(volumen>10.00){
+        digitalWrite(BOMBA,HIGH);
+        //AQUÍ FALTA BARRIDO LEDS
+        
+        do{
+          volumen=MedirNivelAgua();
+          NivelLuz(volumen,volumen_ant);
+          volumen_ant=volumen;  
+          if (digitalRead(S_MAG)==LOW){digitalWrite(BOMBA,LOW);} // Faltaba agregar esta línea para apagar la bomba cuando soltabamos el gatillo 
+        }while(volumen>10.00 && (sensor_mag = digitalRead(S_MAG))==LOW);
+        //digitalWrite(BOMBA,LOW);
+      }
+      else{
+        digitalWrite(BOMBA,LOW);
+      } 
     }
-  */
- 
- 
-  
-  
-  vTaskDelete(NULL);
+    /*
+    volumen=MedirNivelAgua
+    volumen=MedirNivelAgua();
+    lux=analogRead(S_LUZ); 
+    sensor_mag = digitalRead(S_MAG);
+    LedsShiftRegister(volumen);
+    EncenderBomba(sensor_mag);
+    */
 }
-void ultrasonido (void * parameter)
-{
-  // Esta parte de codigo comentado es para probar como funcionan las tres funciones
-  /*for (int i=0; i<10;i++)
-  { Serial.print(2*i);
-  delay(1000);
-    }
-  */
-  digitalWrite(Trigger, HIGH);
-  delayMicroseconds(20); //Enviamos un pulso de 10us
-  digitalWrite(Trigger, LOW);
 
-  t = pulseIn(Echo, HIGH); //Obtenemios el ancho del pulso
-  d = t/59; //Escalamos el tiempo a una distancia en cm
-  
-  vTaskDelete(NULL);
+double MedirNivelAgua(){
+  double Tiempo;
+  double Volumen; 
+  digitalWrite(US_TRIGGER, HIGH);
+  delayMicroseconds(10); //Enviamos un pulso de 10us
+  digitalWrite(US_TRIGGER, LOW);
+  Tiempo = pulseIn(US_ECHO, HIGH);
+  Serial.println(Tiempo);
+  if ((Tiempo<4190) & (Tiempo>3800)){
+    Volumen= -0.0244*Tiempo+102.65;  
+  }
+  else if ((Tiempo<3800) & (Tiempo>2270)){
+      Volumen= -0.0338*Tiempo + 136.37;
+  }
+  Serial.println(Volumen);
+  return Volumen;
 }
-void magnetico (void * parameter)
-{
-  // Esta parte de codigo comentado es para probar como funcionan las tres funciones
- /* for (int i=0; i<10;i++)
-  { Serial.print(3*i);
-  delay(1000);
+
+void NivelLuz(double volumen, double volumen_anterior){
+  double cantidad_consumida;
+  uint16_t lux;
+  cantidad_consumida=(volumen_anterior-volumen) + cantidad_consumida;
+  lux=analogRead(S_LUZ);
+  if((cantidad_consumida >= 5) && (cantidad_consumida <= 6)){
+     Encender_leds(amarillo_fuerte,amarillo_debil,lux);
+     Encender_leds(blanco_fuerte,blanco_debil,lux);
+  }
+  else if((cantidad_consumida >= 10) && (cantidad_consumida <= 11)){
+    Encender_leds(rojo_fuerte,rojo_debil,lux);
+    Encender_leds(blanco_fuerte,blanco_debil,lux);
+    cantidad_consumida=0;
+  }
+}
+
+void Encender_leds(uint32_t color_fuerte,uint32_t color_debil,volatile uint16_t lux){
+  strip.begin();
+  strip.clear();
+  for(int i=0;i<LED_COUNT;i++){
+    if (lux>150){
+       strip.setPixelColor(i, color_fuerte); // Moderately bright green color.
     }
-  */
-  
-  vTaskDelete(NULL);
+    else{
+       strip.setPixelColor(i, color_debil);
+    }
+    strip.show();
+    delay(50);
+    }  
 }
+
+void LedsShiftRegister(){
+  
+}
+
+/*void EncenderBomba(sensor_mag){
+  if (sensor_mag==HIGH)
+  {
+    digitalWrite(BOMBA,HIGH);
+   }
+  else 
+   {
+    digitalWrite(BOMBA,LOW);
+   }
+}*/
