@@ -1,0 +1,81 @@
+#include <Wire.h>
+#include <Adafruit_NeoPixel.h>
+#include <math.h>
+const int US_TRIGGER = 4;//pin 6 del micro
+const int US_ECHO = 3;//pin 5 del micro
+#define LED_PIN 7//PIN 13 del micro
+#define S_LUZ A1//PIN 23 del micro
+#define LED_COUNT 60
+#define BOMBA 5//PIN 11 del micro
+#define S_MAG 6//PIN 12 del micro
+
+#define SCK 2//PIN 4 del micro
+#define SER 8//PIN 14 del micro
+#define RCK 9//PIN 15 del micro
+Adafruit_NeoPixel strip(LED_COUNT, LED_PIN, NEO_RGB + NEO_KHZ800);
+uint32_t rojo = strip.Color(0, 200,0);
+uint32_t verde = strip.Color(0, 0, 200);
+uint32_t blanco = strip.Color(200, 200, 200);
+uint32_t amarillo = strip.Color(0, 200, 200);
+void setup() {
+  // put your setup code here, to run once:
+  pinMode(US_TRIGGER, OUTPUT); //pin como salida
+  pinMode(US_ECHO, INPUT); //pin como entrada
+  digitalWrite(US_TRIGGER, LOW); //Inicializamos el pin con 0
+  pinMode(S_MAG, INPUT); //pin como entrada
+  pinMode(S_LUZ, INPUT); //pin como entrada
+  pinMode(BOMBA,OUTPUT);
+  Serial.begin(9600);
+  strip.begin();           // INITIALIZE NeoPixel strip object (REQUIRED)
+  strip.clear();
+  strip.show();
+  delay(50);
+
+}
+
+void loop() {
+  // put your main code here, to run repeatedly:
+double volumen, volumen_inicial, consumido;
+int sensor_mag;
+uint16_t luz;
+volumen_inicial = MedirNivelAgua();
+consumido=0;
+while(1)
+{
+  volumen=MedirNivelAgua();
+  luz=analogRead(S_LUZ);
+  if(luz<100 && consumido < 10){strip.setPixelColor(LED_COUNT, blanco);strip.show();}
+  else if(luz>160 && consumido < 10){strip.clear();}
+  consumido=volumen_inicial - volumen;
+  sensor_mag=digitalRead(S_MAG);//Acá validar qué tan diferente es leer antes o dentro del condicional
+  if(sensor_mag==HIGH && volumen>=10 && consumido <=5){for(int i=0;i<LED_COUNT;i++){strip.setPixelColor(LED_COUNT, verde);strip.show();}if(luz<100){strip.setPixelColor(LED_COUNT, blanco);strip.show();}else if(luz>160){strip.clear();}}
+  else if(sensor_mag==HIGH && volumen>=10 && consumido >5 && consumido <=10){for(int i=0;i<LED_COUNT;i++){strip.setPixelColor(LED_COUNT, amarillo);strip.show();}if(luz<100){strip.setPixelColor(LED_COUNT, blanco);strip.show();}else if(luz>160){strip.clear();}}
+  else if(sensor_mag==HIGH && volumen>=10 && consumido >10){for(int i=0;i<LED_COUNT;i++){strip.setPixelColor(LED_COUNT, rojo);strip.show();}}
+  else if(sensor_mag==HIGH && volumen>=10 && consumido >15){strip.clear();volumen_inicial=MedirNivelAgua();}
+  if(sensor_mag=LOW){digitalWrite(BOMBA,LOW);}
+  while(digitalRead(S_MAG)==HIGH){
+    volumen=MedirNivelAgua();
+    consumido=volumen_inicial-volumen;
+    if(volumen>=10){digitalWrite(BOMBA,HIGH);if(digitalRead(S_MAG)==LOW){digitalWrite(BOMBA,LOW);break;}}
+    }
+  
+  }
+}
+
+double MedirNivelAgua(){
+  double Tiempo;
+  double Volumen; 
+  digitalWrite(US_TRIGGER, HIGH);
+  delayMicroseconds(10); //Enviamos un pulso de 10us
+  digitalWrite(US_TRIGGER, LOW);
+  Tiempo = pulseIn(US_ECHO, HIGH);
+  Serial.println(Tiempo);
+  if ((Tiempo<4190) & (Tiempo>3800)){
+    Volumen= -0.0244*Tiempo+102.65;  
+  }
+  else if ((Tiempo<3800) & (Tiempo>2270)){
+      Volumen= -0.0338*Tiempo + 136.37;
+  }
+  Serial.println(Volumen);
+  return Volumen;
+}
