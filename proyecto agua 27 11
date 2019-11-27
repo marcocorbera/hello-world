@@ -1,0 +1,22 @@
+volumen_inicial=medir();
+consumido=0;
+while(1)
+{
+volumen=medir_agua();
+luz=medir_luz();
+if(luz<100 && consumido<10){prender blanco};
+elsif(luz>160 && consumido <10){apagar leds};}
+consumido=volumen_inicial-volumen;
+if(S_MAG==HIGH && volumen>=10 && consumido <=5){tira_leds(verde);if(luz<100){prender blanco};elsif(luz>160){apagar leds;}}
+if(S_MAG==HIGH && volumen>=10 && consumido >5 && consumido <= 10){tira_leds(amarillo);if(luz<100){prender blanco};elsif(luz>160){apagar leds;}}
+if(S_MAG==HIGH && volumen>=10 && consumido >10){tira_leds(rojo);}
+if(S_MAG==HIGH && volumen>=10 && consumido >15){apagar leds; volumen_inicial=medir();}
+while (S_MAG==HIGH){
+volumen=medir_agua();
+consumido=volumen_inicial-volumen;
+if(volumen>=10){
+prender_bomba;
+if(S_MAG==LOW){apagar_bomba;break;}
+}
+
+}
